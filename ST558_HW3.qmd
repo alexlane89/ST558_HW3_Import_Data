@@ -147,3 +147,109 @@ yeast_data |>
 
 ### Task 2.3 - Combining Excel and Delimited Data
 
+Read in data from the white wine excel spreadsheet. First activate the 'readxl' package for this session.
+```{r}
+library("readxl")
+```
+
+Then, read in the excel sheet from the RProject session folder via the 'readxl' package.
+```{r}
+white_wine <- read_excel(
+  "./white-wine.xlsx",
+  sheet = "white-wine",
+  col_names = TRUE
+)
+white_wine
+```
+
+Rename the column names (i.e. remove spaces) by using the variables names from the second excel sheet.
+```{r}
+ww_col_names <- data.frame(
+  read_excel(
+    "./white-wine.xlsx",
+    sheet = "variables",
+    col_names = TRUE
+  )
+)
+ww_col_names
+```
+
+Overwrite the existing column names with the 'ww_col_names' tibble from the excel sheet.
+```{r}
+colnames(white_wine) <- ww_col_names[[1]]
+white_wine
+```
+
+Add a column indicating that these observations are associated with white wines.
+```{r}
+mut_white_wine <- white_wine |>
+  mutate(wine_type = "white")
+print(mut_white_wine)
+```
+
+Pull in the red wine data by using readr package. First enable the package.
+```{r}
+library(readr)
+```
+
+Then pull in the data from a .csv file.
+```{r}
+red_wine <- read_delim(
+  "./red-wine.csv",
+  delim = ";",
+  show_col_types = TRUE
+)
+red_wine
+```
+
+Update the column names to be the same as those for the white wines.
+```{r}
+colnames(red_wine) <- ww_col_names[[1]]
+red_wine
+```
+
+Add a column indicating that these observations are associated with white wines.
+```{r}
+mut_red_wine <- red_wine |>
+  mutate(wine_type = "red")
+mut_red_wine
+```
+
+Now combine the two datasets
+```{r}
+wine_dataset <- bind_rows(mut_white_wine, mut_red_wine)
+View(wine_dataset)
+```
+
+Filter combined dataset to only see high quality (> 6.5) wines and wines that have an alcohol value <132.
+```{r}
+wine_dataset |>
+  filter(quality > 6.5, alcohol < 132)
+```
+
+Continue to sort the rows based on quality.
+```{r}
+wine_dataset |>
+  filter(quality > 6.5, alcohol < 132) |>
+  arrange(quality) |>
+  View()
+```
+
+Continue the chain to only show variables acid, alcohol, type, and variable.
+```{r}
+wine_dataset |>
+  filter(quality > 6.5, alcohol < 132) |>
+  arrange(quality) |>
+  select(citric_acid, alcohol, wine_type, quality)
+```
+
+Now add the mean and standard deviation of the alcohol variable, grouped by quality.
+```{r}
+wine_dataset |>
+  group_by(quality) |>
+  mutate(mean_alcohol = mean(alcohol)) |>
+  mutate(sd_alcohol = sd(alcohol)) |>
+  View()
+```
+
+## Task 3 - Database Practice
