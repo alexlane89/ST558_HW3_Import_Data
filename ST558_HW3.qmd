@@ -1,0 +1,149 @@
+---
+title: "ST558_HW3_Importing_Data"
+author: "Charles Lane"
+format: pdf
+editor: visual
+---
+
+## Task 1 - Conceptual Questions
+
+# 1 - *If your working directory is myfolder/homework/, what relative path would you specify to get the file located at myfolder/MyData.csv?*
+
+  From the R Console, we use the getwd() and setwd() commands to get and set the working directory, respectively. Setting a working directory of a different folder/object with the same root path as the current directory is accomplished with:
+  
+'setwd("../MyData.csv")'
+
+From the Terminal, commands of simply 'cd ..' will change the directory to a level higher. 'cd ./DIRECTORY' would move the active directory to a location within the current directory.
+  
+```{r}
+
+```
+
+# 2 - *What are the major benefits of using R Projects?*
+
+  R projects establish a self-contained organizational location. This helps sharing configuration between different parties as all folder or file references can be local.
+
+# 3 - *What is git and what is github?*
+
+  Git is a version control and history software which retains all versions of code and allows for review/comparison of updates to code. Git can therefore be used to collaborate as well. Several different entities may develop on a main branch of code while enabling review by all parties prior to commmitting updates.
+  Github is a website or front-end environment for git, including visualization of code projects ("Repos"), and their associated components (branches, descriptive files, etc.)
+
+# 4 - *What are the two main differences between a tibble and a data.frame?*
+  A tibble's print results are more organized and display only the top rows/columns.
+  Also, as stated in the notes - they do not coerce down to a vector when you subset to only one column using [
+
+# 5 - *Rewrite the following nested function call using baseR’s chaining operator:*
+
+# 6 - *What is meant by long format data and wide format data? Which do we generally prefer for statistical analysis?*
+
+## Task 2 - Reading Delimited Data
+
+### Task 2.1 - Glass Data
+
+First, need to activate the necessary packages for this session.
+
+```{r}
+library(tidyverse)
+library(readr)
+```
+
+Read-in data using the 'readr' package from tidyverse.
+
+```{r}
+#reading in data
+glass_data <- read_csv(
+  "./glass.data",
+  col_names = c("ID","RI", "Na", "Mg", "Al", "Si",
+                "K", "Ca", "Ba", "Fe", "Type_of_glass"),
+  show_col_types = TRUE)
+glass_data
+```
+
+Now update "Type_of_glass" variable to be a string with descriptive values in place of values of 1-7.
+```{r}
+glass_data |>
+  mutate(
+    Type_of_glass = ifelse(
+      Type_of_glass == 1,"building_windows_float_processed",
+        ifelse(
+          Type_of_glass == 2, "building_windows_non_float_processed",
+            ifelse(
+              Type_of_glass == 3, "vehicle_windows_float_processed",
+                ifelse(
+                  Type_of_glass == 4,
+                    "vehicle_windows_non_float_processed",
+                    ifelse(
+                      Type_of_glass == 5, "containers",
+                        ifelse(
+                          Type_of_glass == 6, "tableware",
+                            ifelse(
+                              Type_of_glass == 7, "headlamps", "ERROR")
+                            )
+                        )
+                    )
+                )
+            )
+          )
+      )
+```
+
+The preceding chain only updated the 'Type_of_glass' values, but the chain can be extended to include filtering and selection.
+```{r}
+glass_data |>
+  mutate(
+    Type_of_glass = ifelse(
+      Type_of_glass == 1,"building_windows_float_processed",
+        ifelse(
+          Type_of_glass == 2, "building_windows_non_float_processed",
+            ifelse(
+              Type_of_glass == 3, "vehicle_windows_float_processed",
+                ifelse(
+                  Type_of_glass == 4,
+                    "vehicle_windows_non_float_processed",
+                    ifelse(
+                      Type_of_glass == 5, "containers",
+                        ifelse(
+                          Type_of_glass == 6, "tableware",
+                            ifelse(
+                              Type_of_glass == 7, "headlamps", "ERROR")
+                            )
+                        )
+                    )
+                )
+            )
+          )
+      ) |>
+  filter(
+    Fe < 0.2,
+    Type_of_glass == "tableware" | Type_of_glass == "headlamps")
+```
+
+### Task 2.2 - Yeast Data
+
+Pull in the yeast data
+```{r}
+yeast_data <- read_fwf(
+  "./yeast.data",
+  col_positions = fwf_widths(c(12, 6, 6, 6, 6, 6, 6, 6, 6, 3),
+                             c("seq_name","mcg", "gvh", "alm", "mit",
+                               "erl", "pox", "vac", "nuc", "class")),
+  show_col_types = TRUE)
+yeast_data
+```
+
+Start a chain removing the 'seq_name' and 'nuc' columns.
+```{r}
+yeast_data |>
+  select(-seq_name & -nuc)
+```
+
+Continue the chain to determine mean and median for all numeric variables, grouped by 'class'.
+```{r}
+yeast_data |>
+  select(-seq_name & -nuc) |>
+  group_by(class) |>
+  mutate(across(where(is.numeric), list(mean = mean, median = median), .names = "{.col}_{.fn}"))
+```
+
+### Task 2.3 - Combining Excel and Delimited Data
+
