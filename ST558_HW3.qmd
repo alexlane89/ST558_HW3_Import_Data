@@ -7,7 +7,7 @@ editor: visual
 
 ## Task 1 - Conceptual Questions
 
-# 1 - *If your working directory is myfolder/homework/, what relative path would you specify to get the file located at myfolder/MyData.csv?*
+### 1 - *If your working directory is myfolder/homework/, what relative path would you specify to get the file located at myfolder/MyData.csv?*
 
   From the R Console, we use the getwd() and setwd() commands to get and set the working directory, respectively. Setting a working directory of a different folder/object with the same root path as the current directory is accomplished with:
   
@@ -15,20 +15,20 @@ editor: visual
 
 From the Terminal, commands of simply 'cd ..' will change the directory to a level higher. 'cd ./DIRECTORY' would move the active directory to a location within the current directory.
 
-# 2 - *What are the major benefits of using R Projects?*
+### 2 - *What are the major benefits of using R Projects?*
 
   R projects establish a self-contained organizational location. This helps sharing configuration between different parties as all folder or file references can be local.
 
-# 3 - *What is git and what is github?*
+### 3 - *What is git and what is github?*
 
   Git is a version control and history software which retains all versions of code and allows for review/comparison of updates to code. Git can therefore be used to collaborate as well. Several different entities may develop on a main branch of code while enabling review by all parties prior to commmitting updates.
   Github is a website or front-end environment for git, including visualization of code projects ("Repos"), and their associated components (branches, descriptive files, etc.)
 
-# 4 - *What are the two main differences between a tibble and a data.frame?*
+### 4 - *What are the two main differences between a tibble and a data.frame?*
   A tibble's print results are more organized and display only the top rows/columns.
   Also, as stated in the notes - they do not coerce down to a vector when you subset to only one column using [
 
-# 5 - *Rewrite the following nested function call using baseR’s chaining operator:*
+### 5 - *Rewrite the following nested function call using baseR’s chaining operator:*
 
 ```{r}
 arrange(filter(select(as_tibble(iris), starts_with("Petal"), Species),
@@ -44,7 +44,7 @@ as_tibble(iris) |>
 ```
 
 
-# 6 - *What is meant by long format data and wide format data? Which do we generally prefer for statistical analysis?*
+### 6 - *What is meant by long format data and wide format data? Which do we generally prefer for statistical analysis?*
 
 Wide format data is generally used more often for presentation and includes multiple observations in one row. Long format limits the data table to one row per observation. While wide format may be easier to consume visually, statistical analysis is more easily performed on long format because it requires less manipulation of data to separate observations.
 
