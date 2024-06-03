@@ -1,7 +1,7 @@
 ---
 title: "ST558_HW3_Importing_Data"
 author: "Charles Lane"
-format: pdf
+format: html
 editor: visual
 ---
 
@@ -14,10 +14,6 @@ editor: visual
 'setwd("../MyData.csv")'
 
 From the Terminal, commands of simply 'cd ..' will change the directory to a level higher. 'cd ./DIRECTORY' would move the active directory to a location within the current directory.
-  
-```{r}
-
-```
 
 # 2 - *What are the major benefits of using R Projects?*
 
@@ -34,7 +30,23 @@ From the Terminal, commands of simply 'cd ..' will change the directory to a lev
 
 # 5 - *Rewrite the following nested function call using baseR’s chaining operator:*
 
+```{r}
+arrange(filter(select(as_tibble(iris), starts_with("Petal"), Species),
+               Petal.Length < 1.55), Species)
+```
+
+```{r}
+as_tibble(iris) |>
+  select(starts_with("Petal"), Species) |>
+  filter(Petal.Length < 1.55) |>
+  arrange(by_group = Species) |>
+  collect()
+```
+
+
 # 6 - *What is meant by long format data and wide format data? Which do we generally prefer for statistical analysis?*
+
+Wide format data is generally used more often for presentation and includes multiple observations in one row. Long format limits the data table to one row per observation. While wide format may be easier to consume visually, statistical analysis is more easily performed on long format because it requires less manipulation of data to separate observations.
 
 ## Task 2 - Reading Delimited Data
 
@@ -184,7 +196,7 @@ Add a column indicating that these observations are associated with white wines.
 ```{r}
 mut_white_wine <- white_wine |>
   mutate(wine_type = "white")
-print(mut_white_wine)
+mut_white_wine
 ```
 
 Pull in the red wine data by using readr package. First enable the package.
@@ -217,8 +229,8 @@ mut_red_wine
 
 Now combine the two datasets
 ```{r}
-wine_dataset <- bind_rows(mut_white_wine, mut_red_wine)
-View(wine_dataset)
+wine_dataset <- bind_rows(mut_white_wine, mut_red_wine, .id = "id")
+wine_dataset
 ```
 
 Filter combined dataset to only see high quality (> 6.5) wines and wines that have an alcohol value <132.
@@ -231,8 +243,7 @@ Continue to sort the rows based on quality.
 ```{r}
 wine_dataset |>
   filter(quality > 6.5, alcohol < 132) |>
-  arrange(quality) |>
-  View()
+  arrange(quality)
 ```
 
 Continue the chain to only show variables acid, alcohol, type, and variable.
@@ -246,10 +257,114 @@ wine_dataset |>
 Now add the mean and standard deviation of the alcohol variable, grouped by quality.
 ```{r}
 wine_dataset |>
+  filter(quality > 6.5, alcohol < 132) |>
+  arrange(quality) |>
+  select(citric_acid, alcohol, wine_type, quality) |>
   group_by(quality) |>
   mutate(mean_alcohol = mean(alcohol)) |>
-  mutate(sd_alcohol = sd(alcohol)) |>
-  View()
+  mutate(sd_alcohol = sd(alcohol))
 ```
 
 ## Task 3 - Database Practice
+
+First, invoke the RSQLite package for this session.
+```{r}
+library(RSQLite)
+```
+
+Then, connect to the lahman database.
+```{r}
+con <- dbConnect(RSQLite::SQLite(), "./lahman.db")
+```
+
+Look at the tables in the database.
+```{r}
+dbListTables(con)
+```
+
+Now let's get all data from the 'Teams' table in the year 2015.
+```{r}
+library(dplyr)
+tbl(con, "Teams") |>
+  filter(yearID == 2015)
+```
+
+Perform the same activity using SQL statements w/in the tbl function.
+```{r}
+tbl(con, sql(
+  "SELECT `Teams`.*
+  FROM `Teams`
+  WHERE (`yearID` = 2015.0)"
+))
+```
+
+### Task 3.1 - Hall of Fame Data Organization
+
+```{r}
+HOF_Players <- tbl(con, "HallOfFame") |>
+  filter(inducted == "Y", category == "Player") |>
+  select(playerID, yearID, category) |>
+  collect()
+HOF_Players
+```
+
+Combine the table above with first and last names from the People table.
+```{r}
+inner_join(tbl(con, "HallOfFame") |>
+             filter(inducted == "Y", category == "Player") |>
+             select(playerID, yearID, category),
+           tbl(con, "People") |>
+             select(playerID, nameFirst, nameLast),
+           by = join_by(playerID == playerID)) |>
+  collect()
+```
+
+### Task 3.2 - Hall of Fame Managers' Win Percentage
+
+Generate a dataset of the Hall of Fame managers and their win/loss records.
+```{r}
+tbl(con, "Managers") |>
+  select(playerID, G, W, L) |>
+  group_by(playerID) |>
+  summarize(G_managed = sum(G, na.rm = TRUE),
+            Total_W = sum(W, na.rm = TRUE),
+            Total_L = sum(L, na.rm = TRUE)) |>
+  collect() |>
+  mutate(Win_Loss_Pc = Total_W/G_managed) |>
+  arrange(desc(Win_Loss_Pc)) |>
+  collect()
+```
+
+### Task 3.3 Determine Managers in the Hall of Fame
+
+Determine people who were managers and are in the hall of fame, regardless of whether they were inducted as managers or not.
+
+**Approach:**
+1) Use the Hall of Fame table with similar transformation as above (successfully inducted into HoF) with the exception to *not* filter on category of 'player'.
+
+2) Inner Join the resulting HoF table with the Managers manipulated table from above (including win percentage for managers). Join on 'playerID'.
+
+**NOTE** - Since the HoF table was generated with a join, and the dplyr 'inner_join()' function only joins 2 tables, a "nested" inner join or an inner join of 'Managers' and (inner join of Hall of Fame and People) will be used.
+
+3) The result will be a table with 9 variables: playerID, yearID, category, nameFirst, nameLast, G_managed, Total_W, Total_L, Win_Loss_Pc.
+
+```{r}
+inner_join(tbl(con, "Managers") |>
+             select(playerID, G, W, L) |>
+             group_by(playerID) |>
+             summarize(G_managed = sum(G, na.rm = TRUE),
+                       Total_W = sum(W, na.rm = TRUE),
+                       Total_L = sum(L, na.rm = TRUE)) |>
+             collect() |>
+             mutate(Win_Loss_Pc = Total_W/G_managed) |>
+             arrange(desc(Win_Loss_Pc)),
+           inner_join(tbl(con, "HallOfFame") |>
+                        filter(inducted == "Y") |>
+                        select(playerID, yearID, category),
+                      tbl(con, "People") |>
+                        select(playerID, nameFirst, nameLast),
+                      by = join_by(playerID == playerID)) |>
+             collect(),
+           by = join_by(playerID == playerID))
+```
+
